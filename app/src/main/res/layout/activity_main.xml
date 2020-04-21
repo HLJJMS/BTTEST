@@ -4,15 +4,360 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:background="#2C3346"
+    tools:context=".MainActivity"
+    tools:ignore="MissingConstraints">
+
 
     <TextView
-        android:layout_width="wrap_content"
+        android:id="@+id/title"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
+        android:background="@color/white"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="Covenant RV Vent"
+        android:textStyle="bold"
+        tools:ignore="MissingConstraints" />
+
+    <ImageView
+        android:id="@+id/top"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="10dp"
+        android:src="@mipmap/on_off"
+        app:layout_constraintBottom_toBottomOf="@id/title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <Switch
+        android:id="@+id/switcher"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginLeft="10dp"
+        app:layout_constraintBottom_toBottomOf="@id/title"
+        app:layout_constraintStart_toEndOf="@id/top"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/img_speak"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginRight="20dp"
+        android:src="@mipmap/yy"
+        app:layout_constraintBottom_toBottomOf="@id/title"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <ImageView
+        android:id="@+id/img_sitting"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginRight="10dp"
+        android:src="@mipmap/setting"
+        app:layout_constraintBottom_toBottomOf="@id/title"
+        app:layout_constraintRight_toLeftOf="@id/img_speak"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/ll_speed"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintTop_toBottomOf="@id/title">
+
+        <ImageView
+            android:id="@+id/speed_low"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@mipmap/jian" />
+
+        <View
+            android:layout_width="15dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="20dp"
+            android:background="@drawable/pop_bg" />
+
+        <View
+            android:layout_width="15dp"
+            android:layout_height="80dp"
+            android:layout_marginLeft="20dp"
+            android:background="@drawable/pop_bg" />
+
+        <View
+            android:layout_width="15dp"
+            android:layout_height="120dp"
+            android:layout_marginLeft="20dp"
+            android:background="@drawable/pop_bg" />
+
+        <ImageView
+            android:id="@+id/speed_height"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginLeft="20dp"
+            android:src="@mipmap/jia" />
+
+
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/ll_cover"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintTop_toBottomOf="@id/title">
+
+        <ImageView
+            android:id="@+id/open_door"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@mipmap/box1"
+            app:layout_constraintBottom_toBottomOf="@id/open_door_round"
+            app:layout_constraintEnd_toEndOf="@id/open_door_round"
+            app:layout_constraintStart_toStartOf="@id/open_door_round"
+            app:layout_constraintTop_toTopOf="@id/open_door_round" />
+
+        <ImageView
+            android:id="@+id/open_door_round"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:src="@mipmap/ic_round"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/close_door_round"
+            app:layout_constraintHorizontal_chainStyle="spread"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/close_door_round"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:src="@mipmap/ic_round"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/open_door_round"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/close_door"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@mipmap/box2"
+            app:layout_constraintBottom_toBottomOf="@id/close_door_round"
+            app:layout_constraintEnd_toEndOf="@id/close_door_round"
+            app:layout_constraintStart_toStartOf="@id/close_door_round"
+            app:layout_constraintTop_toTopOf="@id/close_door_round" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_rain"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintTop_toBottomOf="@id/title">
+
+        <ImageView
+            android:id="@+id/leida"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginLeft="20dp"
+            android:src="@mipmap/xh" />
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/ll_air"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintTop_toBottomOf="@id/title">
+
+
+        <ImageView
+            android:id="@+id/up"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@mipmap/cf"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/down"
+            app:layout_constraintHorizontal_chainStyle="spread"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/down"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@mipmap/jf"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/up"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ImageView
+        android:id="@+id/fun_speed"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="250dp"
+        android:background="@drawable/left_top"
+        app:layout_constraintEnd_toStartOf="@id/fun_cover"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+
+        android:id="@+id/fun_cover"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginLeft="2dp"
+        android:background="@drawable/right_top"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/fun_speed"
+        app:layout_constraintTop_toTopOf="@id/fun_speed" />
+
+    <ImageView
+        android:id="@+id/rain_sensor"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:background="@drawable/left_bottom"
+        app:layout_constraintEnd_toStartOf="@id/air_flow"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/fun_speed" />
+
+    <ImageView
+        android:id="@+id/air_flow"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginLeft="2dp"
+        android:background="@drawable/right_bottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/rain_sensor"
+        app:layout_constraintTop_toTopOf="@id/rain_sensor" />
+
+    <ImageView
+        android:id="@+id/img_fun_speed"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:src="@mipmap/ic_sun"
+        app:layout_constraintBottom_toTopOf="@id/tv_fun_speed"
+        app:layout_constraintEnd_toEndOf="@id/fun_speed"
+        app:layout_constraintStart_toStartOf="@id/fun_speed"
+        app:layout_constraintTop_toTopOf="@id/fun_speed"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_fun_speed"
+        android:gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Fun Speed"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/fun_speed"
+        app:layout_constraintEnd_toEndOf="@id/fun_speed"
+        app:layout_constraintStart_toStartOf="@id/fun_speed"
+        app:layout_constraintTop_toBottomOf="@id/img_fun_speed" />
+
+    <ImageView
+        android:id="@+id/img_fun_cover"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:src="@mipmap/ic_wangba"
+        app:layout_constraintBottom_toTopOf="@id/tv_fun_cover"
+        app:layout_constraintEnd_toEndOf="@id/fun_cover"
+        app:layout_constraintStart_toStartOf="@id/fun_cover"
+        app:layout_constraintTop_toTopOf="@id/fun_cover"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_fun_cover"
+        android:gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Fun Cover"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/fun_cover"
+        app:layout_constraintEnd_toEndOf="@id/fun_cover"
+        app:layout_constraintStart_toStartOf="@id/fun_cover"
+        app:layout_constraintTop_toBottomOf="@id/img_fun_cover" />
+
+
+    <ImageView
+        android:id="@+id/img_rain_sensor"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:src="@mipmap/ic_water"
+        app:layout_constraintBottom_toTopOf="@id/tv_rain_sensor"
+        app:layout_constraintEnd_toEndOf="@id/rain_sensor"
+        app:layout_constraintStart_toStartOf="@id/rain_sensor"
+        app:layout_constraintTop_toTopOf="@id/rain_sensor"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_rain_sensor"
+        android:gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Rain Sensor"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/rain_sensor"
+        app:layout_constraintEnd_toEndOf="@id/rain_sensor"
+        app:layout_constraintStart_toStartOf="@id/rain_sensor"
+        app:layout_constraintTop_toBottomOf="@id/img_rain_sensor" />
+
+
+    <ImageView
+        android:id="@+id/img_air_flow"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:src="@mipmap/ic_wuxu"
+        app:layout_constraintBottom_toTopOf="@id/tv_air_flow"
+        app:layout_constraintEnd_toEndOf="@id/air_flow"
+        app:layout_constraintStart_toStartOf="@id/air_flow"
+        app:layout_constraintTop_toTopOf="@id/air_flow"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_air_flow"
+        android:gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Air Flow"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/air_flow"
+        app:layout_constraintEnd_toEndOf="@id/air_flow"
+        app:layout_constraintStart_toStartOf="@id/air_flow"
+        app:layout_constraintTop_toBottomOf="@id/img_air_flow" />
+
+
+    <ImageView
+        android:id="@+id/img_bt"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_marginBottom="20dp"
+        android:src="@mipmap/ic_bt"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
