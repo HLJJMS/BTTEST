@@ -1,9 +1,13 @@
 package com.example.lanyatest;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothGatt;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -19,7 +23,14 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
 
+import com.clj.fastble.BleManager;
+import com.clj.fastble.callback.BleScanAndConnectCallback;
+import com.clj.fastble.callback.BleScanCallback;
+import com.clj.fastble.data.BleDevice;
+import com.clj.fastble.exception.BleException;
+import com.clj.fastble.scan.BleScanRuleConfig;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import java.util.ArrayList;
@@ -103,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
     List<ImageView> imgList = new ArrayList<>();
     List<View> viewList = new ArrayList<>();
     Animation animation;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -116,7 +128,10 @@ public class MainActivity extends AppCompatActivity {
         setPopupWindowSpeak();
         setPopwindowSetting();
         setData();
+//        aboutBlueTooth();
+
     }
+
 
     private void setData() {
         imgList.add(funSpeed);
@@ -127,12 +142,12 @@ public class MainActivity extends AppCompatActivity {
         viewList.add(llCover);
         viewList.add(llRain);
         viewList.add(llAir);
-       animation  = AnimationUtils.loadAnimation(MainActivity.this,R.anim.rote);
+        animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.rote);
     }
 
     private void getBlueTooth() {
         final RxPermissions rxPermissions = new RxPermissions(this);
-        rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION).subscribe(new Consumer<Boolean>() {
+        rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE).subscribe(new Consumer<Boolean>() {
             @Override
             public void accept(Boolean aBoolean) throws Exception {
                 if (aBoolean) {
@@ -316,6 +331,7 @@ public class MainActivity extends AppCompatActivity {
                 setButton(3);
                 break;
             case R.id.img_bt:
+                aboutBlueTooth();
                 break;
         }
     }
@@ -359,5 +375,87 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void aboutBlueTooth() {
+        BleManager.getInstance().init(getApplication());
+        BleManager.getInstance()
+                .enableLog(true)
+                .setReConnectCount(1, 5000)
+                .setSplitWriteNum(20)
+                .setConnectOverTime(10000)
+                .setOperateTimeout(5000);
+        BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
+//                .setServiceUuids(serviceUuids)      // 只扫描指定的服务的设备，可选
+//                .setDeviceName(true, "Honor Play")         // 只扫描指定广播名的设备，可选
+//                .setDeviceMac("7c:76:68:db:8c:b0")                  // 只扫描指定mac的设备，可选
+//                .setAutoConnect(isAutoConnect)      // 连接时的autoConnect参数，可选，默认false
+                .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
+                .build();
+        BleManager.getInstance().initScanRule(scanRuleConfig);
+//        BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
+//            @Override
+//            public void onScanFinished(BleDevice scanResult) {
+//                // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
+//                if (null != scanResult) {
+//                    Log.e("扫描结束", scanResult.toString());
+//                } else {
+//                    Log.e("啥也，没有", "meiy ");
+//                }
+//            }
+//
+//            @Override
+//            public void onStartConnect() {
+//                // 开始扫描（主线程）
+//                Log.e("链接", "开始");
+//            }
+//
+//            @Override
+//            public void onConnectFail(BleDevice bleDevice, BleException exception) {
+//                Log.e("连接失败", exception.toString());
+//            }
+//
+//            @Override
+//            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
+//                // 连接成功，BleDevice即为所连接的BLE设备（主线程）
+//                Log.e("成功链接", bleDevice.toString());
+//            }
+//
+//            @Override
+//            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
+//                // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
+//            }
+//
+//            @Override
+//            public void onScanStarted(boolean success) {
+//                Log.e("扫描开始", String.valueOf(success));
+//            }
+//
+//            @Override
+//            public void onScanning(BleDevice bleDevice) {
+//                Log.e("正在骚麦", String.valueOf(bleDevice.toString()));
+//            }
+//        });
+        BleManager.getInstance().scan(new BleScanCallback() {
+            @Override
+            public void onScanStarted(boolean success) {
+                // 开始扫描（主线程）
+            }
 
+            @Override
+            public void onScanning(BleDevice bleDevice) {
+                // 扫描到一个符合扫描规则的BLE设备（主线程）
+            }
+
+            @Override
+            public void onScanFinished(List<BleDevice> scanResultList) {
+                // 扫描结束，列出所有扫描到的符合扫描规则的BLE设备（主线程）
+                if(scanResultList.size()==0){
+
+                }else{
+
+                }
+            }
+        });
+
+
+    }
 }

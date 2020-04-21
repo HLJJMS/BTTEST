@@ -37,5 +37,5 @@ dependencies {
     implementation 'com.jakewharton:butterknife:10.1.0'
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.1.0'
     implementation 'com.qmuiteam:qmui:1.2.0'
-
+    implementation 'com.clj.fastble:FastBleLib:2.3.4'
 }
