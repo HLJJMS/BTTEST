@@ -21,6 +21,7 @@ import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -45,12 +46,14 @@ import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.reactivex.functions.Consumer;
 
+import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
 import static com.inuker.bluetooth.library.Code.REQUEST_SUCCESS;
 
 public class MainActivity extends AppCompatActivity {
@@ -126,6 +129,9 @@ public class MainActivity extends AppCompatActivity {
     List<ImageView> imgList = new ArrayList<>();
     List<View> viewList = new ArrayList<>();
     Animation animation;
+    String uuid = "00002B11-0000-1000-8000-00805F9B34FB";
+    UUID serviceUuids = UUID.fromString(uuid);
+    BleDevice myBleDerice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
             public void accept(Boolean aBoolean) throws Exception {
                 if (aBoolean) {
                     Log.e("结果", aBoolean.toString());
-//                    aboutBlueTooth();
+                    aboutBlueTooth();
                 } else {
                     Log.e("结果", aBoolean.toString());
                 }
@@ -180,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
             //使能蓝牙
             bluetoothAdapter.enable();
         }
+        getBlueTooth();
     }
 
 
@@ -399,168 +406,71 @@ public class MainActivity extends AppCompatActivity {
                 .setConnectOverTime(10000)
                 .setOperateTimeout(5000);
         BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
-//                .setServiceUuids(serviceUuids)      // 只扫描指定的服务的设备，可选
+                .setServiceUuids(new UUID[]{serviceUuids})      // 只扫描指定的服务的设备，可选
 //                .setDeviceName(true, "Honor Play")         // 只扫描指定广播名的设备，可选
 //                .setDeviceMac("4C:7C:5F:B0:94:80")                  // 只扫描指定mac的设备，可选
 //                .setAutoConnect(isAutoConnect)      // 连接时的autoConnect参数，可选，默认false
                 .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
-//        BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
-//            @Override
-//            public void onScanFinished(BleDevice scanResult) {
-//                // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
-//                if (null != scanResult) {
-//                    Log.e("扫描结束", scanResult.toString());
-//                } else {
-//                    Log.e("啥也，没有", "meiy ");
-//                }
-//            }
-//
-//            @Override
-//            public void onStartConnect() {
-//                // 开始扫描（主线程）
-//                Log.e("链接", "开始");
-//            }
-//
-//            @Override
-//            public void onConnectFail(BleDevice bleDevice, BleException exception) {
-//                Log.e("连接失败", exception.toString());
-//            }
-//
-//            @Override
-//            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
-//                // 连接成功，BleDevice即为所连接的BLE设备（主线程）
-//                Log.e("成功链接", bleDevice.toString());
-//            }
-//
-//            @Override
-//            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
-//                // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
-//            }
-//
-//            @Override
-//            public void onScanStarted(boolean success) {
-//                Log.e("扫描开始", String.valueOf(success));
-//            }
-//
-//            @Override
-//            public void onScanning(BleDevice bleDevice) {
-//                Log.e("正在骚麦", String.valueOf(bleDevice.toString()));
-//            }
-//        });
-        BleManager.getInstance().scan(new BleScanCallback() {
+        BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
+            @Override
+            public void onScanFinished(BleDevice scanResult) {
+                // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
+                if (null != scanResult) {
+                    Toast.makeText(context, "发现设备", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(context, "未发现设备", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onStartConnect() {
+                // 开始扫描（主线程）
+                Toast.makeText(context, "开始连接", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onConnectFail(BleDevice bleDevice, BleException exception) {
+                Toast.makeText(context, "连接失败", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
+                // 连接成功，BleDevice即为所连接的BLE设备（主线程）
+                Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
+                myBleDerice = bleDevice;
+            }
+
+            @Override
+            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
+                // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
+            }
+
             @Override
             public void onScanStarted(boolean success) {
-                // 开始扫描（主线程）
+                Log.e("扫描开始", String.valueOf(success));
             }
 
             @Override
             public void onScanning(BleDevice bleDevice) {
-                // 扫描到一个符合扫描规则的BLE设备（主线程）
-            }
-
-            @Override
-            public void onScanFinished(List<BleDevice> scanResultList) {
-                // 扫描结束，列出所有扫描到的符合扫描规则的BLE设备（主线程）
-                for (int i = 0; i < scanResultList.size(); i++) {
-                    String a = scanResultList.get(i).getMac();
-                    String b = scanResultList.get(i).getName();
-                    String c = scanResultList.get(i).getDevice().getName();
-                    String d = scanResultList.get(i).getDevice().getAddress();
-                    ParcelUuid[] f = scanResultList.get(i).getDevice().getUuids();
-
-                    BleManager.getInstance().connect(scanResultList.get(i), new BleScanAndConnectCallback() {
-                        @Override
-                        public void onScanFinished(BleDevice scanResult) {
-
-                        }
-
-                        @Override
-                        public void onStartConnect() {
-
-                        }
-
-                        @Override
-                        public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                            Log.e("连接失败", exception.toString());
-                        }
-
-                        @Override
-                        public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
-                            // 连接成功，BleDevice即为所连接的BLE设备（主线程）
-//                Log.e("成功链接", bleDevice.toString());
-                        }
-
-                        @Override
-                        public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
-
-                        }
-
-                        @Override
-                        public void onScanStarted(boolean success) {
-
-                        }
-
-                        @Override
-                        public void onScanning(BleDevice bleDevice) {
-
-                        }
-                    });
-                }
+                Log.e("正在骚麦", String.valueOf(bleDevice.toString()));
             }
         });
-
-
     }
 
-
-    private void kitBt() {
-        BluetoothClient mClient = new BluetoothClient(context);
-        SearchRequest request = new SearchRequest.Builder()
-                .searchBluetoothLeDevice(3000, 3)   // 先扫BLE设备3次，每次3s
-                .searchBluetoothClassicDevice(5000) // 再扫经典蓝牙5s
-                .searchBluetoothLeDevice(2000)      // 再扫BLE设备2s
-                .build();
-
-        BleConnectOptions options = new BleConnectOptions.Builder()
-                .setConnectRetry(3)   // 连接如果失败重试3次
-                .setConnectTimeout(30000)   // 连接超时30s
-                .setServiceDiscoverRetry(3)  // 发现服务如果失败重试3次
-                .setServiceDiscoverTimeout(20000)  // 发现服务超时20s
-                .build();
-        mClient.search(request, new SearchResponse() {
-            @Override
-            public void onSearchStarted() {
-
+    //    检查连接
+    private boolean cheakConnect() {
+        if (null == myBleDerice) {
+            Toast.makeText(context, "连接异常", Toast.LENGTH_LONG).show();
+            return false;
+        } else {
+            if (STATE_CONNECTED == BleManager.getInstance().getConnectState(myBleDerice)) {
+                return true;
+            } else {
+                Toast.makeText(context, "连接异常", Toast.LENGTH_LONG).show();
+                return false;
             }
-
-            @Override
-            public void onDeviceFounded(SearchResult device) {
-                Beacon beacon = new Beacon(device.scanRecord);
-//                BluetoothLog.e(String.format("beacon for %s\n%s", device.getAddress(), beacon.toString()));
-                Log.e(device.getAddress(), "哈哈哈哈哈哈哈");
-            }
-
-            @Override
-            public void onSearchStopped() {
-
-            }
-
-            @Override
-            public void onSearchCanceled() {
-
-            }
-        });
-
-        mClient.connect("7C:76:68:DB:39:D6", options, new BleConnectResponse() {
-            @Override
-            public void onResponse(int code, BleGattProfile data) {
-                if (code == REQUEST_SUCCESS) {
-
-                }
-            }
-        });
-
+        }
     }
 }
