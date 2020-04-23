@@ -1,14 +1,12 @@
 package com.example.lanyatest;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.ParcelUuid;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -25,23 +23,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
 
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleScanAndConnectCallback;
-import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.exception.BleException;
 import com.clj.fastble.scan.BleScanRuleConfig;
-import com.inuker.bluetooth.library.BluetoothClient;
-import com.inuker.bluetooth.library.beacon.Beacon;
-import com.inuker.bluetooth.library.connect.options.BleConnectOptions;
-import com.inuker.bluetooth.library.connect.response.BleConnectResponse;
-import com.inuker.bluetooth.library.model.BleGattProfile;
-import com.inuker.bluetooth.library.search.SearchRequest;
-import com.inuker.bluetooth.library.search.SearchResult;
-import com.inuker.bluetooth.library.search.response.SearchResponse;
-import com.inuker.bluetooth.library.utils.BluetoothLog;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import java.util.ArrayList;
@@ -54,15 +41,13 @@ import butterknife.OnClick;
 import io.reactivex.functions.Consumer;
 
 import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
-import static com.inuker.bluetooth.library.Code.REQUEST_SUCCESS;
 
 public class MainActivity extends AppCompatActivity {
     Context context;
-    String[] permissions = new String[3];
-    PopupWindow popupWindowSpeak, popupWindowSetting;
-    View viewSpeak, viewSetting;
-    TextView englishTxt, francaisTxt, deutschTxt, espanolTxt, settingData;
-    ImageView englishImg, francaisImg, deutschImg, espanolImg, settingClose;
+    PopupWindow popupWindowSpeak, popupWindowSetting, popupwindowConnect;
+    View viewSpeak, viewSetting, viewConnect;
+    TextView englishTxt, francaisTxt, deutschTxt, espanolTxt, settingData, connectName;
+    ImageView englishImg, francaisImg, deutschImg, espanolImg, settingClose, backButton;
     SeekBar seekBar;
     @BindView(R.id.title)
     TextView title;
@@ -132,6 +117,62 @@ public class MainActivity extends AppCompatActivity {
     String uuid = "00002B11-0000-1000-8000-00805F9B34FB";
     UUID serviceUuids = UUID.fromString(uuid);
     BleDevice myBleDerice;
+    BluetoothGatt myGatt;
+
+    //电源 关
+    private String writePowerClose = "FF02010055";
+    //电源 开启;
+    private String writePowerOpen = "FF02010155";
+
+    //风罩开 关
+    private String writeWindCloseAndOpen = "FF02020055";
+    //风罩开 开
+    private String writeWindOpenAndOpen = "FF02020155";
+
+
+    //风罩关 开
+    private String writeWindOpenAndClose = "FF02080155";
+    //风罩关 关
+    private String writeWindCloseAndClose = "FF02080055";
+
+
+    //雨量 开
+    private String writeRainOpen = "FF02030155";
+    //雨量 关
+    private String writeRainClose = "FF02030055";
+
+    //进风 开
+    private String writeAirIntakeOpen = "FF02040155";
+    //进风 关
+    private String writeAirIntakeClose = "FF02040055";
+
+    //排风 开
+    private String writeExhaustAirOpen = "FF02050155";
+    //排风 关
+    private String writeExhaustAirClose = "FF02050055";
+
+
+    //风速 + 开
+    private String writeWindSpeedPlusOpen = "FF02060155";
+    //风速 + 关
+    private String writeWindSpeedPlusClose = "FF02060055";
+
+
+    //风速 - 开
+    private String writeWindSpeedReductionOpen = "FF02070155";
+    //风速 - 关
+    private String writeWindSpeedReductionClose = "FF02070055";
+
+
+    //状态查询 - 查询
+    private String writeStateQueryOpen = "FF02100155";
+    //状态查询 - 关
+    private String writeStateQueryClose = "FF02100055";
+
+
+    //温度 - 关 代表 关闭
+    private String writeTemperatureClose = "FF02110055";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,15 +180,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         context = this;
-        permissions[0] = Manifest.permission.BLUETOOTH;
-        permissions[1] = Manifest.permission.BLUETOOTH_ADMIN;
-//        permissions[2]= Manifest.permission.BLUETOOTH_PRIVILEGED;
         getBlueTooth();
         setPopupWindowSpeak();
         setPopwindowSetting();
+        setPopupwindowConnect();
         setData();
-//        aboutBlueTooth();
-
     }
 
 
@@ -173,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
                     aboutBlueTooth();
                 } else {
                     Log.e("结果", aBoolean.toString());
+                    Toast.makeText(context, "权限被禁止", Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -311,6 +349,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void setPopupwindowConnect() {
+        popupwindowConnect = new PopupWindow(context);
+        viewConnect = LayoutInflater.from(this).inflate(R.layout.pop_wiondow, null);
+        popupwindowConnect.setContentView(viewSetting);
+        popupwindowConnect.setWidth(LinearLayout.LayoutParams.MATCH_PARENT);// 设置弹出窗口的宽
+        popupwindowConnect.setHeight(LinearLayout.LayoutParams.MATCH_PARENT);// 设置弹出窗口的高
+        popupwindowConnect.setOutsideTouchable(true);//点击空白键取消
+        popupwindowConnect.setFocusable(true); //点击返回键取消
+        backButton = viewConnect.findViewById(R.id.img_bt);
+        connectName = viewConnect.findViewById(R.id.name);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                popupwindowConnect.dismiss();
+            }
+        });
+    }
+
+    private void showPopConnect() {
+        popupwindowConnect.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
+    }
+
     @OnClick({R.id.img_speak, R.id.img_sitting, R.id.speed_low, R.id.speed_height, R.id.open_door_round, R.id.close_door_round, R.id.leida, R.id.up, R.id.down, R.id.fun_speed, R.id.fun_cover, R.id.rain_sensor, R.id.air_flow, R.id.img_bt})
     public void onViewClicked(View view) {
         switch (view.getId()) {
@@ -351,9 +411,8 @@ public class MainActivity extends AppCompatActivity {
                 setButton(3);
                 break;
             case R.id.img_bt:
+                showPopConnect();
                 aboutBlueTooth();
-
-
                 break;
         }
     }
@@ -407,9 +466,6 @@ public class MainActivity extends AppCompatActivity {
                 .setOperateTimeout(5000);
         BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
                 .setServiceUuids(new UUID[]{serviceUuids})      // 只扫描指定的服务的设备，可选
-//                .setDeviceName(true, "Honor Play")         // 只扫描指定广播名的设备，可选
-//                .setDeviceMac("4C:7C:5F:B0:94:80")                  // 只扫描指定mac的设备，可选
-//                .setAutoConnect(isAutoConnect)      // 连接时的autoConnect参数，可选，默认false
                 .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
@@ -433,6 +489,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onConnectFail(BleDevice bleDevice, BleException exception) {
                 Toast.makeText(context, "连接失败", Toast.LENGTH_LONG).show();
+                connectName.setText(bleDevice.getName() + "connect failed");
             }
 
             @Override
@@ -440,6 +497,17 @@ public class MainActivity extends AppCompatActivity {
                 // 连接成功，BleDevice即为所连接的BLE设备（主线程）
                 Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
                 myBleDerice = bleDevice;
+                connectName.setText(bleDevice.getName() + "conncected");
+                myGatt = gatt;
+                List<BluetoothGattService> serviceList = gatt.getServices();
+                for (BluetoothGattService service : serviceList) {
+                    UUID uuid_service = service.getUuid();
+
+                    List<BluetoothGattCharacteristic> characteristicList = service.getCharacteristics();
+                    for (BluetoothGattCharacteristic characteristic : characteristicList) {
+                        UUID uuid_chara = characteristic.getUuid();
+                    }
+                }
             }
 
             @Override
@@ -454,7 +522,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onScanning(BleDevice bleDevice) {
-                Log.e("正在骚麦", String.valueOf(bleDevice.toString()));
+                Log.e("正在扫描", String.valueOf(bleDevice.toString()));
             }
         });
     }
