@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -25,7 +26,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.clj.fastble.BleManager;
+import com.clj.fastble.callback.BleIndicateCallback;
 import com.clj.fastble.callback.BleScanAndConnectCallback;
+import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.exception.BleException;
 import com.clj.fastble.scan.BleScanRuleConfig;
@@ -44,6 +47,8 @@ import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
 
 public class MainActivity extends AppCompatActivity {
     Context context;
+    UUID uuid_service;
+    UUID uuid_chara;
     PopupWindow popupWindowSpeak, popupWindowSetting, popupwindowConnect;
     View viewSpeak, viewSetting, viewConnect;
     TextView englishTxt, francaisTxt, deutschTxt, espanolTxt, settingData, connectName;
@@ -172,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
 
     //温度 - 关 代表 关闭
     private String writeTemperatureClose = "FF02110055";
-
+    private boolean leidaOpen = false, upOpen = false, downOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         context = this;
-        getBlueTooth();
         setPopupWindowSpeak();
         setPopwindowSetting();
         setPopupwindowConnect();
@@ -198,8 +202,19 @@ public class MainActivity extends AppCompatActivity {
         viewList.add(llRain);
         viewList.add(llAir);
         animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.rote);
+        switcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    postData(writePowerOpen);
+                } else {
+                    postData(writePowerClose);
+                }
+            }
+        });
     }
 
+    //    获取权限
     private void getBlueTooth() {
         final RxPermissions rxPermissions = new RxPermissions(this);
         rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE).subscribe(new Consumer<Boolean>() {
@@ -207,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
             public void accept(Boolean aBoolean) throws Exception {
                 if (aBoolean) {
                     Log.e("结果", aBoolean.toString());
-                    aboutBlueTooth();
+                    cheakBlueTooth();
                 } else {
                     Log.e("结果", aBoolean.toString());
                     Toast.makeText(context, "权限被禁止", Toast.LENGTH_LONG).show();
@@ -216,18 +231,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void cheakBTOpen() {
-        //获取蓝牙适配器实例
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        //若蓝牙未开启，则开启蓝牙
-        if (!bluetoothAdapter.isEnabled()) {
-            //使能蓝牙
-            bluetoothAdapter.enable();
+    //    检查蓝牙是否打开
+    private void cheakBlueTooth() {
+        BluetoothAdapter blueadapter = BluetoothAdapter.getDefaultAdapter();
+        //支持蓝牙模块
+        if (blueadapter != null) {
+            if (blueadapter.isEnabled()) {
+                aboutBlueTooth();
+            }else{
+                Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
+            }
+        }else{
+            Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
         }
-        getBlueTooth();
     }
 
-
+    //    祖册语音pop
     private void setPopupWindowSpeak() {
         popupWindowSpeak = new PopupWindow(this);
         viewSpeak = LayoutInflater.from(this).inflate(R.layout.pop_speak, null);
@@ -301,10 +320,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //    打开语言pop
     private void showPopSpeak() {
         popupWindowSpeak.showAtLocation(getWindow().getDecorView(), Gravity.RIGHT, 0, 0);
     }
 
+    //注册设置pop
     private void setPopwindowSetting() {
         popupWindowSetting = new PopupWindow(this);
         viewSetting = LayoutInflater.from(this).inflate(R.layout.pop_setting, null);
@@ -344,15 +365,16 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //    展示设置pop
     private void showPopSetting() {
         popupWindowSetting.showAtLocation(getWindow().getDecorView(), Gravity.RIGHT, 0, 0);
     }
 
-
+    //    注册链接pop
     private void setPopupwindowConnect() {
         popupwindowConnect = new PopupWindow(context);
         viewConnect = LayoutInflater.from(this).inflate(R.layout.pop_wiondow, null);
-        popupwindowConnect.setContentView(viewSetting);
+        popupwindowConnect.setContentView(viewConnect);
         popupwindowConnect.setWidth(LinearLayout.LayoutParams.MATCH_PARENT);// 设置弹出窗口的宽
         popupwindowConnect.setHeight(LinearLayout.LayoutParams.MATCH_PARENT);// 设置弹出窗口的高
         popupwindowConnect.setOutsideTouchable(true);//点击空白键取消
@@ -367,6 +389,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //    展示链接pop
     private void showPopConnect() {
         popupwindowConnect.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
     }
@@ -381,8 +404,10 @@ public class MainActivity extends AppCompatActivity {
                 showPopSetting();
                 break;
             case R.id.speed_low:
+                postData(writeWindSpeedReductionOpen);
                 break;
             case R.id.speed_height:
+                postData(writeWindSpeedPlusOpen);
                 break;
             case R.id.open_door_round:
                 openDoorRound.startAnimation(animation);
@@ -393,10 +418,35 @@ public class MainActivity extends AppCompatActivity {
                 openDoorRound.clearAnimation();
                 break;
             case R.id.leida:
+                if (leidaOpen) {
+                    leidaOpen = false;
+                    postData(writeRainClose);
+                    leida.setBackgroundResource(R.mipmap.xh);
+                } else {
+                    leidaOpen = true;
+                    postData(writeRainOpen);
+                    leida.setBackgroundResource(R.mipmap.xh_1);
+                }
                 break;
             case R.id.up:
+                if (upOpen) {
+                    upOpen = false;
+                    postData(writeExhaustAirClose);
+                    up.setBackgroundResource(R.mipmap.jf);
+                } else {
+                    upOpen = true;
+                    postData(writeExhaustAirOpen);
+                    leida.setBackgroundResource(R.mipmap.jf_1);
+                }
                 break;
             case R.id.down:
+                if (downOpen) {
+                    downOpen = false;
+                    postData(writeAirIntakeClose);
+                } else {
+                    downOpen = true;
+                    postData(writeAirIntakeOpen);
+                }
                 break;
             case R.id.fun_speed:
                 setButton(0);
@@ -412,12 +462,12 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.img_bt:
                 showPopConnect();
-                aboutBlueTooth();
+                getBlueTooth();
                 break;
         }
     }
 
-
+    //设置下方四个大按钮的点击事件
     private void setButton(int position) {
         for (int i = 0; i < 4; i++) {
             if (i == position) {
@@ -456,6 +506,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+
+    //    关于蓝牙的设定
     private void aboutBlueTooth() {
         BleManager.getInstance().init(getApplication());
         BleManager.getInstance()
@@ -483,12 +536,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartConnect() {
                 // 开始扫描（主线程）
-                Toast.makeText(context, "开始连接", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "start connect", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                Toast.makeText(context, "连接失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
                 connectName.setText(bleDevice.getName() + "connect failed");
             }
 
@@ -501,11 +554,10 @@ public class MainActivity extends AppCompatActivity {
                 myGatt = gatt;
                 List<BluetoothGattService> serviceList = gatt.getServices();
                 for (BluetoothGattService service : serviceList) {
-                    UUID uuid_service = service.getUuid();
-
+                    uuid_service = service.getUuid();
                     List<BluetoothGattCharacteristic> characteristicList = service.getCharacteristics();
                     for (BluetoothGattCharacteristic characteristic : characteristicList) {
-                        UUID uuid_chara = characteristic.getUuid();
+                        uuid_chara = characteristic.getUuid();
                     }
                 }
             }
@@ -518,6 +570,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScanStarted(boolean success) {
                 Log.e("扫描开始", String.valueOf(success));
+                Toast.makeText(context, "start scan", Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -525,18 +578,69 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("正在扫描", String.valueOf(bleDevice.toString()));
             }
         });
+
+        startIndicate();
+    }
+
+    //    打开通知
+    private void startIndicate() {
+        BleManager.getInstance().indicate(
+                myBleDerice,
+                uuid,
+                uuid,
+                new BleIndicateCallback() {
+                    @Override
+                    public void onIndicateSuccess() {
+                        // 打开通知操作成功
+                    }
+
+                    @Override
+                    public void onIndicateFailure(BleException exception) {
+                        // 打开通知操作失败
+                    }
+
+                    @Override
+                    public void onCharacteristicChanged(byte[] data) {
+                        // 打开通知后，设备发过来的数据将在这里出现
+                        Toast.makeText(context, data.toString(), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    //    写入功能
+    private void postData(String data) {
+        if (cheakConnect()) {
+            BleManager.getInstance().write(
+                    myBleDerice,
+                    uuid,
+                    uuid,
+                    data.getBytes(),
+                    new BleWriteCallback() {
+                        @Override
+                        public void onWriteSuccess(int current, int total, byte[] justWrite) {
+                            // 发送数据到设备成功（分包发送的情况下，可以通过方法中返回的参数可以查看发送进度）
+                            Toast.makeText(context, "post data success", Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onWriteFailure(BleException exception) {
+                            // 发送数据到设备失败
+                            Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+        }
     }
 
     //    检查连接
     private boolean cheakConnect() {
         if (null == myBleDerice) {
-            Toast.makeText(context, "连接异常", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "no connect", Toast.LENGTH_LONG).show();
             return false;
         } else {
             if (STATE_CONNECTED == BleManager.getInstance().getConnectState(myBleDerice)) {
                 return true;
             } else {
-                Toast.makeText(context, "连接异常", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "connect error", Toast.LENGTH_LONG).show();
                 return false;
             }
         }
