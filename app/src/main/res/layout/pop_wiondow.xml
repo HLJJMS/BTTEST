@@ -16,30 +16,14 @@
         android:gravity="center"
         android:padding="10dp"
         android:text="Covenant RV Vent"
-        android:textColor="#000000"
- />
+        android:textColor="#000000" />
 
-    <TextView
-        android:id="@+id/txt"
+    <androidx.recyclerview.widget.RecyclerView
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/recyclerView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingLeft="20dp"
-        android:paddingTop="50dp"
-        android:text="Device Name"
-        android:textColor="@color/white"
-        android:textSize="20sp"
-        app:layout_constraintTop_toBottomOf="@id/title" />
-
-    <TextView
-        android:id="@+id/name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingLeft="20dp"
-        android:paddingTop="50dp"
-        android:text="Device Name"
-        android:textColor="@color/white"
-        android:textSize="20sp"
-        app:layout_constraintTop_toBottomOf="@id/txt" />
+        android:layout_height="0dp" />
 
     <ImageView
         android:id="@+id/img_bt"

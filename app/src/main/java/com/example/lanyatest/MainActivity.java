@@ -3,8 +3,6 @@ package com.example.lanyatest;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,10 +22,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleIndicateCallback;
 import com.clj.fastble.callback.BleScanAndConnectCallback;
+import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.exception.BleException;
@@ -119,11 +121,12 @@ public class MainActivity extends AppCompatActivity {
     List<ImageView> imgList = new ArrayList<>();
     List<View> viewList = new ArrayList<>();
     Animation animation;
+    RecyclerView recyclerView;
     String uuid = "00002B11-0000-1000-8000-00805F9B34FB";
     UUID serviceUuids = UUID.fromString(uuid);
     BleDevice myBleDerice;
     BluetoothGatt myGatt;
-
+    Adapter adapter = new Adapter(R.layout.layout);
     //电源 关
     private String writePowerClose = "FF02010055";
     //电源 开启;
@@ -238,10 +241,10 @@ public class MainActivity extends AppCompatActivity {
         if (blueadapter != null) {
             if (blueadapter.isEnabled()) {
                 aboutBlueTooth();
-            }else{
+            } else {
                 Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
             }
-        }else{
+        } else {
             Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
         }
     }
@@ -380,7 +383,15 @@ public class MainActivity extends AppCompatActivity {
         popupwindowConnect.setOutsideTouchable(true);//点击空白键取消
         popupwindowConnect.setFocusable(true); //点击返回键取消
         backButton = viewConnect.findViewById(R.id.img_bt);
-        connectName = viewConnect.findViewById(R.id.name);
+        recyclerView = viewConnect.findViewById(R.id.recyclerView);
+        adapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(BaseQuickAdapter adapters, View view, int position) {
+                connect(adapter.getData().get(position));
+            }
+        });
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -507,9 +518,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     //    关于蓝牙的设定
     private void aboutBlueTooth() {
+        SetFastBle();
+//        setBtKit();
+    }
+
+    private void setBtKit() {
+    }
+
+
+    private void SetFastBle() {
+        adapter.setNewData(new ArrayList<>());
         BleManager.getInstance().init(getApplication());
         BleManager.getInstance()
                 .enableLog(true)
@@ -518,69 +538,130 @@ public class MainActivity extends AppCompatActivity {
                 .setConnectOverTime(10000)
                 .setOperateTimeout(5000);
         BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
-                .setServiceUuids(new UUID[]{serviceUuids})      // 只扫描指定的服务的设备，可选
+//                .setServiceUuids(new UUID[]{serviceUuids})      // 只扫描指定的服务的设备，可选
                 .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
-        BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
-            @Override
-            public void onScanFinished(BleDevice scanResult) {
-                // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
-                if (null != scanResult) {
-                    Toast.makeText(context, "发现设备", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(context, "未发现设备", Toast.LENGTH_LONG).show();
-                }
-            }
 
-            @Override
-            public void onStartConnect() {
-                // 开始扫描（主线程）
-                Toast.makeText(context, "start connect", Toast.LENGTH_LONG).show();
-            }
 
+        BleManager.getInstance().scan(new BleScanCallback() {
             @Override
-            public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
-                connectName.setText(bleDevice.getName() + "connect failed");
-            }
-
-            @Override
-            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
-                // 连接成功，BleDevice即为所连接的BLE设备（主线程）
-                Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
-                myBleDerice = bleDevice;
-                connectName.setText(bleDevice.getName() + "conncected");
-                myGatt = gatt;
-                List<BluetoothGattService> serviceList = gatt.getServices();
-                for (BluetoothGattService service : serviceList) {
-                    uuid_service = service.getUuid();
-                    List<BluetoothGattCharacteristic> characteristicList = service.getCharacteristics();
-                    for (BluetoothGattCharacteristic characteristic : characteristicList) {
-                        uuid_chara = characteristic.getUuid();
-                    }
-                }
-            }
-
-            @Override
-            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
-                // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
+            public void onScanFinished(List<BleDevice> scanResultList) {
+                Toast.makeText(context, "扫描完毕", Toast.LENGTH_LONG).show();
+                adapter.setNewData(scanResultList);
             }
 
             @Override
             public void onScanStarted(boolean success) {
-                Log.e("扫描开始", String.valueOf(success));
-                Toast.makeText(context, "start scan", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "扫描开始", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onScanning(BleDevice bleDevice) {
-                Log.e("正在扫描", String.valueOf(bleDevice.toString()));
+
             }
         });
 
-        startIndicate();
+//        BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
+//            @Override
+//            public void onScanFinished(BleDevice scanResult) {
+//                // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
+//                if (null != scanResult) {
+//                    Toast.makeText(context, "发现设备", Toast.LENGTH_LONG).show();
+//                } else {
+//                    Toast.makeText(context, "未发现设备", Toast.LENGTH_LONG).show();
+//                }
+//            }
+//
+//            @Override
+//            public void onStartConnect() {
+//                // 开始扫描（主线程）
+//                Toast.makeText(context, "start connect", Toast.LENGTH_LONG).show();
+//            }
+//
+//            @Override
+//            public void onConnectFail(BleDevice bleDevice, BleException exception) {
+//                Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
+//                connectName.setText(bleDevice.getName() + "connect failed");
+//            }
+//
+//            @Override
+//            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
+//                // 连接成功，BleDevice即为所连接的BLE设备（主线程）
+//                Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
+//                myBleDerice = bleDevice;
+//                connectName.setText(bleDevice.getName() + "conncected");
+//                myGatt = gatt;
+//                List<BluetoothGattService> serviceList = gatt.getServices();
+//                for (BluetoothGattService service : serviceList) {
+//                    uuid_service = service.getUuid();
+//                    List<BluetoothGattCharacteristic> characteristicList = service.getCharacteristics();
+//                    for (BluetoothGattCharacteristic characteristic : characteristicList) {
+//                        uuid_chara = characteristic.getUuid();
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
+//                // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
+//            }
+//
+//            @Override
+//            public void onScanStarted(boolean success) {
+//                Log.e("扫描开始", String.valueOf(success));
+//                Toast.makeText(context, "start scan", Toast.LENGTH_LONG).show();
+//            }
+//
+//            @Override
+//            public void onScanning(BleDevice bleDevice) {
+//                Log.e("正在扫描", String.valueOf(bleDevice.toString()));
+//            }
+//        });
+
+//        startIndicate();
     }
+
+    //    点击链接设备
+    private void connect(BleDevice bleDevice) {
+        BleManager.getInstance().connect(bleDevice, new BleScanAndConnectCallback() {
+            @Override
+            public void onScanFinished(BleDevice scanResult) {
+                Toast.makeText(context, "链接完毕", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onStartConnect() {
+                Toast.makeText(context, "开始链接", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onConnectFail(BleDevice bleDevice, BleException exception) {
+                Toast.makeText(context, "链接失败" + exception.toString(), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
+                Toast.makeText(context, "链接成功", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
+
+            }
+
+            @Override
+            public void onScanStarted(boolean success) {
+
+            }
+
+            @Override
+            public void onScanning(BleDevice bleDevice) {
+
+            }
+        });
+    }
+
 
     //    打开通知
     private void startIndicate() {

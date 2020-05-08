@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "com.example.lanyatest"
-        minSdkVersion 24
+        minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -38,5 +38,8 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.1.0'
     implementation 'com.qmuiteam:qmui:1.2.0'
     implementation 'com.clj.fastble:FastBleLib:2.3.4'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.30'
+
     implementation 'com.inuker.bluetooth:library:1.4.0'
 }
