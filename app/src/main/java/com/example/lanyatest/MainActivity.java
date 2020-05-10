@@ -3,7 +3,6 @@ package com.example.lanyatest;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.os.Bundle;
@@ -24,22 +23,16 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
-import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.clj.fastble.BleManager;
-import com.clj.fastble.callback.BleIndicateCallback;
 import com.clj.fastble.callback.BleNotifyCallback;
 import com.clj.fastble.callback.BleScanAndConnectCallback;
-import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.exception.BleException;
 import com.clj.fastble.scan.BleScanRuleConfig;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +43,7 @@ import butterknife.OnClick;
 import io.reactivex.functions.Consumer;
 
 import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+import static com.clj.fastble.utils.HexUtil.charToByte;
 
 public class MainActivity extends AppCompatActivity {
     Context context;
@@ -125,12 +119,12 @@ public class MainActivity extends AppCompatActivity {
     List<ImageView> imgList = new ArrayList<>();
     List<View> viewList = new ArrayList<>();
     Animation animation;
-    RecyclerView recyclerView;
     String uuid = "00002B11-0000-1000-8000-00805F9B34FB";
     UUID serviceUuids = UUID.fromString(uuid);
     BleDevice myBleDerice;
     BluetoothGatt myGatt;
     Adapter adapter = new Adapter(R.layout.layout);
+    TextView pop_name;
     //电源 关
     private String writePowerClose = "FF02010055";
     //电源 开启;
@@ -146,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
     private String writeWindOpenAndClose = "FF02080155";
     //风罩关 关
     private String writeWindCloseAndClose = "FF02080055";
-
 
     //雨量 开
     private String writeRainOpen = "FF02030155";
@@ -184,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
 
     //温度 - 关 代表 关闭
     private String writeTemperatureClose = "FF02110055";
-    private boolean leidaOpen = false, upOpen = false, downOpen = false;
+    private boolean leidaOpen = false, upOpen = false, downOpen = false, closeDoorRoundOpen = false, openDoorRoundOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,9 +206,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    postData(writePowerOpen);
+                    leidaOpen = true;
+                    leida.setBackgroundResource(R.mipmap.xh - 1);
+//                    postData(writePowerOpen);
                 } else {
-                    postData(writePowerClose);
+                    leidaOpen = false;
+                    leida.setBackgroundResource(R.mipmap.xh);
+//                    postData(writePowerClose);
                 }
             }
         });
@@ -387,21 +384,14 @@ public class MainActivity extends AppCompatActivity {
         popupwindowConnect.setOutsideTouchable(true);//点击空白键取消
         popupwindowConnect.setFocusable(true); //点击返回键取消
         backButton = viewConnect.findViewById(R.id.img_bt);
-        recyclerView = viewConnect.findViewById(R.id.recyclerView);
-        adapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(BaseQuickAdapter adapters, View view, int position) {
-                connect(adapter.getData().get(position));
-            }
-        });
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        pop_name = viewConnect.findViewById(R.id.tv_name);
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 popupwindowConnect.dismiss();
             }
         });
+        getBlueTooth();
     }
 
     //    展示链接pop
@@ -425,41 +415,55 @@ public class MainActivity extends AppCompatActivity {
                 postData(writeWindSpeedPlusOpen);
                 break;
             case R.id.open_door_round:
-                openDoorRound.startAnimation(animation);
+                if (openDoorRoundOpen == true) {
+                    openDoorRoundOpen = false;
+                    openDoorRound.clearAnimation();
+                } else {
+                    openDoorRoundOpen = true;
+                    openDoorRound.startAnimation(animation);
+                }
                 closeDoorRound.clearAnimation();
                 break;
             case R.id.close_door_round:
-                closeDoorRound.startAnimation(animation);
+                if (closeDoorRoundOpen == true) {
+                    closeDoorRoundOpen = false;
+                    closeDoorRound.clearAnimation();
+                } else {
+                    closeDoorRoundOpen = true;
+                    closeDoorRound.startAnimation(animation);
+                }
                 openDoorRound.clearAnimation();
                 break;
             case R.id.leida:
-                if (leidaOpen) {
-                    leidaOpen = false;
-                    postData(writeRainClose);
-                    leida.setBackgroundResource(R.mipmap.xh);
-                } else {
-                    leidaOpen = true;
-                    postData(writeRainOpen);
-                    leida.setBackgroundResource(R.mipmap.xh_1);
-                }
+//                if (leidaOpen) {
+//                    leidaOpen = false;
+//                    postData(writeRainClose);
+//                    leida.setBackgroundResource(R.mipmap.xh);
+//                } else {
+//                    leidaOpen = true;
+//                    postData("");
+//                    leida.setBackgroundResource(R.mipmap.xh_1);
+//                }
                 break;
             case R.id.up:
                 if (upOpen) {
                     upOpen = false;
                     postData(writeExhaustAirClose);
-                    up.setBackgroundResource(R.mipmap.jf);
+                    up.setImageResource(R.mipmap.cf);
                 } else {
                     upOpen = true;
                     postData(writeExhaustAirOpen);
-                    leida.setBackgroundResource(R.mipmap.jf_1);
+                    up.setImageResource(R.mipmap.cf_1);
                 }
                 break;
             case R.id.down:
                 if (downOpen) {
                     downOpen = false;
                     postData(writeAirIntakeClose);
+                    down.setImageResource(R.mipmap.jf);
                 } else {
                     downOpen = true;
+                    down.setImageResource(R.mipmap.jf_1);
                     postData(writeAirIntakeOpen);
                 }
                 break;
@@ -477,7 +481,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.img_bt:
                 showPopConnect();
-                getBlueTooth();
                 break;
         }
     }
@@ -522,17 +525,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //    关于蓝牙的设定
     private void aboutBlueTooth() {
-        SetFastBle();
-//        setBtKit();
-    }
-
-    private void setBtKit() {
-    }
-
-
-    private void SetFastBle() {
         adapter.setNewData(new ArrayList<>());
         BleManager.getInstance().init(getApplication());
         BleManager.getInstance()
@@ -547,25 +540,6 @@ public class MainActivity extends AppCompatActivity {
                 .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
-
-
-//        BleManager.getInstance().scan(new BleScanCallback() {
-//            @Override
-//            public void onScanFinished(List<BleDevice> scanResultList) {
-//                Toast.makeText(context, "扫描完毕", Toast.LENGTH_LONG).show();
-//                adapter.setNewData(scanResultList);
-//            }
-//
-//            @Override
-//            public void onScanStarted(boolean success) {
-//                Toast.makeText(context, "扫描开始", Toast.LENGTH_LONG).show();
-//            }
-//
-//            @Override
-//            public void onScanning(BleDevice bleDevice) {
-//
-//            }
-//        });
 
         BleManager.getInstance().scanAndConnect(new BleScanAndConnectCallback() {
             @Override
@@ -595,7 +569,7 @@ public class MainActivity extends AppCompatActivity {
                 // 连接成功，BleDevice即为所连接的BLE设备（主线程）
                 Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
                 myBleDerice = bleDevice;
-//                connectName.setText(bleDevice.getName() + "conncected");
+                pop_name.setText("COWIN conncected");
                 myGatt = gatt;
                 List<BluetoothGattService> serviceList = gatt.getServices();
                 uuid_service_notiyf = serviceList.get(1).getUuid();
@@ -608,6 +582,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
                 // 连接断开，isActiveDisConnected是主动断开还是被动断开（主线程）
+                pop_name.setText("COWIN Unconnected");
             }
 
             @Override
@@ -678,7 +653,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onNotifySuccess() {
                         // 打开通知操作成功
-                        Log.e("打开通知失败", "打开通知失败");
+                        Log.e("打开通知成功", "打开通知成功");
                     }
 
                     @Override
@@ -690,21 +665,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onCharacteristicChanged(byte[] data) {
                         // 打开通知后，设备发过来的数据将在这里出现
-                        String isoString = "";
-                        String srt2 = "";
-                        try {
-                             isoString = new String(data,"ISO-8859-1");
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                             srt2=new String(data,"UTF-8");
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                        Toast.makeText(context, isoString, Toast.LENGTH_LONG).show();
-                        Toast.makeText(context, srt2, Toast.LENGTH_LONG).show();
-                        Toast.makeText(context, data.toString(), Toast.LENGTH_LONG).show();
+                        String str = bytesToString(data, data.length);
+                        setButtonState(str);
+//                        Toast.makeText(context, data.toString(), Toast.LENGTH_LONG).show();
                     }
                 }
         );
@@ -715,12 +678,12 @@ public class MainActivity extends AppCompatActivity {
     //    写入功能
     private void postData(String data) {
         if (cheakConnect()) {
-            byte[] datas = data.getBytes();
+            byte[] a = hexStringToBytes(writeRainOpen);
             BleManager.getInstance().write(
                     myBleDerice,
                     uuid_service_write.toString(),
                     uuid_chara_write.toString(),
-                    data.getBytes(),
+                    a,
                     new BleWriteCallback() {
                         @Override
                         public void onWriteSuccess(int current, int total, byte[] justWrite) {
@@ -750,5 +713,95 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }
+    }
+
+
+    public static byte[] hexStringToBytes(String hexString) {
+        if (hexString == null || hexString.equals("")) {
+            return null;
+        }
+        hexString = hexString.toUpperCase();
+        int length = hexString.length() / 2;
+        char[] hexChars = hexString.toCharArray();
+        byte[] d = new byte[length];
+        for (int i = 0; i < length; i++) {
+            int pos = i * 2;
+            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+        }
+        return d;
+    }
+
+
+    private String bytesToString(byte[] arg, int length) {
+        String result = new String();
+        if (arg != null) {
+            for (int i = 0; i < length; i++) {
+                result = result
+                        + (Integer.toHexString(
+                        arg[i] < 0 ? arg[i] + 256 : arg[i]).length() == 1 ? "0"
+                        + Integer.toHexString(arg[i] < 0 ? arg[i] + 256
+                        : arg[i])
+                        : Integer.toHexString(arg[i] < 0 ? arg[i] + 256
+                        : arg[i])) + " ";
+            }
+            return result;
+        }
+        return "";
+    }
+
+
+    //判断按钮状态
+    private void setButtonState(String data) {
+       String str = data.replace(" ", "");
+        //rain/sensor（雷达）
+        if (String.valueOf(str.charAt(13)).equals("1")) {
+            leidaOpen = true;
+            leida.setImageResource(R.mipmap.xh_1);
+            switcher.setChecked(true);
+        } else {
+            leidaOpen = false;
+            leida.setImageResource(R.mipmap.xh);
+            switcher.setChecked(false);
+        }
+
+        //exhaust(排风)
+        if (String.valueOf(str.charAt(17)).equals("1")) {
+            upOpen = true;
+            up.setImageResource(R.mipmap.cf_1);
+
+        } else {
+            upOpen = false;
+            up.setImageResource(R.mipmap.cf);
+        }
+
+        //intake
+        if (String.valueOf(str.charAt(15)).equals("1")) {
+            downOpen = true;
+            down.setImageResource(R.mipmap.jf_1);
+        } else {
+            downOpen = false;
+            down.setImageResource(R.mipmap.jf);
+        }
+        //open\pause(开门的冰箱)
+        if (String.valueOf(str.charAt(11)).equals("1")) {
+            openDoorRoundOpen = true;
+            openDoorRound.startAnimation(animation);
+            closeDoorRound.clearAnimation();
+        } else {
+            openDoorRoundOpen = false;
+            openDoorRound.clearAnimation();
+            closeDoorRound.clearAnimation();
+        }
+        //close\pause(关门的冰箱)
+        if (String.valueOf(str.charAt(9)).equals("1")) {
+            closeDoorRoundOpen = true;
+            closeDoorRound.startAnimation(animation);
+            openDoorRound.clearAnimation();
+        } else {
+            closeDoorRoundOpen = false;
+            closeDoorRound.clearAnimation();
+            openDoorRound.clearAnimation();
+        }
+
     }
 }
