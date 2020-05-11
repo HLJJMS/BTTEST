@@ -5,7 +5,9 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -43,7 +45,6 @@ import butterknife.OnClick;
 import io.reactivex.functions.Consumer;
 
 import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
-import static com.clj.fastble.utils.HexUtil.charToByte;
 
 public class MainActivity extends AppCompatActivity {
     Context context;
@@ -125,59 +126,69 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGatt myGatt;
     Adapter adapter = new Adapter(R.layout.layout);
     TextView pop_name;
+    @BindView(R.id.v_speed1)
+    View vSpeed1;
+    @BindView(R.id.v_speed2)
+    View vSpeed2;
+    @BindView(R.id.v_speed3)
+    View vSpeed3;
     //电源 关
-    private String writePowerClose = "FF02010055";
+    private byte[] writePowerClose = {-1, 2, 1, 0, 85};
     //电源 开启;
-    private String writePowerOpen = "FF02010155";
-
-    //风罩开 关
-    private String writeWindCloseAndOpen = "FF02020055";
-    //风罩开 开
-    private String writeWindOpenAndOpen = "FF02020155";
-
+    private byte[] writePowerOpen = {-1, 2, 1, 1, 85};
 
     //风罩关 开
-    private String writeWindOpenAndClose = "FF02080155";
+    private byte[] writeWindCloseAndOpen = {-1, 2, 8, 1, 85};
     //风罩关 关
-    private String writeWindCloseAndClose = "FF02080055";
+    private byte[] writeWindCloseAndClose = {-1, 2, 8, 0, 85};
+
+
+    //风罩开 开
+    private byte[] writeWindOpenAndOpen = {-1, 2, 2, 1, 85};
+    //风罩开 关
+    private byte[] writeWindOpenAndClose = {-1, 2, 2, 0, 85};
+
 
     //雨量 开
-    private String writeRainOpen = "FF02030155";
+    private byte[] writeRainOpen = {-1, 2, 3, 1, 85};
     //雨量 关
-    private String writeRainClose = "FF02030055";
+    private byte[] writeRainClose = {-1, 2, 3, 0, 85};
 
     //进风 开
-    private String writeAirIntakeOpen = "FF02040155";
+    private byte[] writeAirIntakeOpen = {-1, 2, 4, 1, 85};
     //进风 关
-    private String writeAirIntakeClose = "FF02040055";
+    private byte[] writeAirIntakeClose = {-1, 2, 4, 0, 85};
 
     //排风 开
-    private String writeExhaustAirOpen = "FF02050155";
+    private byte[] writeExhaustAirOpen = {-1, 2, 5, 1, 85};
     //排风 关
-    private String writeExhaustAirClose = "FF02050055";
+    private byte[] writeExhaustAirClose = {-1, 2, 5, 0, 85};
 
 
     //风速 + 开
-    private String writeWindSpeedPlusOpen = "FF02060155";
+    private byte[] writeWindSpeedPlusOpen = {-1, 2, 6, 1, 85};
     //风速 + 关
-    private String writeWindSpeedPlusClose = "FF02060055";
+    private byte[] writeWindSpeedPlusClose = {-1, 2, 6, 0, 85};
 
 
     //风速 - 开
-    private String writeWindSpeedReductionOpen = "FF02070155";
+    private byte[] writeWindSpeedReductionOpen = {-1, 2, 7, 1, 85};
     //风速 - 关
-    private String writeWindSpeedReductionClose = "FF02070055";
+    private byte[] writeWindSpeedReductionClose = {-1, 2, 7, 0, 85};
 
 
     //状态查询 - 查询
-    private String writeStateQueryOpen = "FF02100155";
+    private byte[] writeStateQueryOpen = {-1, 2, 10, 1, 85};
     //状态查询 - 关
-    private String writeStateQueryClose = "FF02100055";
+    private byte[] writeStateQueryClose = {-1, 2, 10, 0, 85};
 
 
-    //温度 - 关 代表 关闭
-    private String writeTemperatureClose = "FF02110055";
+    //温度 - 开
+    private byte[] writeTemperatureClose = {-1, 2, 11, 1, 85};
+    //温度 - 关
+    private byte[] writeTemperatureOpen = {-1, 2, 11, 0, 85};
     private boolean leidaOpen = false, upOpen = false, downOpen = false, closeDoorRoundOpen = false, openDoorRoundOpen = false;
+    private int height = 0, width = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setData() {
+
         imgList.add(funSpeed);
         imgList.add(funCover);
         imgList.add(rainSensor);
@@ -208,11 +220,11 @@ public class MainActivity extends AppCompatActivity {
                 if (isChecked) {
                     leidaOpen = true;
                     leida.setBackgroundResource(R.mipmap.xh - 1);
-//                    postData(writePowerOpen);
+                    postData(writePowerOpen);
                 } else {
                     leidaOpen = false;
                     leida.setBackgroundResource(R.mipmap.xh);
-//                    postData(writePowerClose);
+                    postData(writePowerClose);
                 }
             }
         });
@@ -243,10 +255,10 @@ public class MainActivity extends AppCompatActivity {
             if (blueadapter.isEnabled()) {
                 aboutBlueTooth();
             } else {
-                Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "BlueTooth off , please open BlueTooth", Toast.LENGTH_LONG).show();
             }
         } else {
-            Toast.makeText(context, "please open BlueTooth", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "BlueTooth off , please open BlueTooth", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -331,13 +343,18 @@ public class MainActivity extends AppCompatActivity {
 
     //注册设置pop
     private void setPopwindowSetting() {
+        DisplayMetrics outMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(outMetrics);
+        width = outMetrics.widthPixels;
+        height = outMetrics.heightPixels;
         popupWindowSetting = new PopupWindow(this);
         viewSetting = LayoutInflater.from(this).inflate(R.layout.pop_setting, null);
         popupWindowSetting.setContentView(viewSetting);
-        popupWindowSetting.setWidth(LinearLayout.LayoutParams.WRAP_CONTENT);// 设置弹出窗口的宽
-        popupWindowSetting.setHeight(LinearLayout.LayoutParams.WRAP_CONTENT);// 设置弹出窗口的高
+        popupWindowSetting.setWidth((width / 5) * 4);// 设置弹出窗口的宽
+        popupWindowSetting.setHeight((height / 5) * 3);// 设置弹出窗口的高
         popupWindowSetting.setOutsideTouchable(true);//点击空白键取消
         popupWindowSetting.setFocusable(true); //点击返回键取消
+        popupWindowSetting.setBackgroundDrawable(new BitmapDrawable());
         seekBar = viewSetting.findViewById(R.id.seekBar);
         settingData = viewSetting.findViewById(R.id.setting_data);
         settingClose = viewSetting.findViewById(R.id.setting_close);
@@ -345,6 +362,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Log.e("更新进度", String.valueOf(progress));
+                double c = 10 + progress * 0.35;
+                double f = c * 1.8 + 32;
+                c = (double) Math.round(c * 10) / 10;
+                f = (double) Math.round(c * 10) / 10;
+                settingData.setText(c + "℃" + "/" + f + "℉");
             }
 
             @Override
@@ -371,7 +393,9 @@ public class MainActivity extends AppCompatActivity {
 
     //    展示设置pop
     private void showPopSetting() {
-        popupWindowSetting.showAtLocation(getWindow().getDecorView(), Gravity.RIGHT, 0, 0);
+        if (cheakConnect()) {
+            popupWindowSetting.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
+        }
     }
 
     //    注册链接pop
@@ -396,88 +420,111 @@ public class MainActivity extends AppCompatActivity {
 
     //    展示链接pop
     private void showPopConnect() {
-        popupwindowConnect.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
+        if (cheakConnect()) {
+            popupwindowConnect.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
+        }
     }
 
     @OnClick({R.id.img_speak, R.id.img_sitting, R.id.speed_low, R.id.speed_height, R.id.open_door_round, R.id.close_door_round, R.id.leida, R.id.up, R.id.down, R.id.fun_speed, R.id.fun_cover, R.id.rain_sensor, R.id.air_flow, R.id.img_bt})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.img_speak:
-                showPopSpeak();
+                if (cheakConnect()) {
+                    showPopSpeak();
+                }
                 break;
             case R.id.img_sitting:
-                showPopSetting();
+                if (cheakConnect()) {
+                    showPopSetting();
+                }
                 break;
             case R.id.speed_low:
-                postData(writeWindSpeedReductionOpen);
+                if (cheakConnect()) {
+                    postData(writeWindSpeedReductionOpen);
+                    setSpeed(false);
+                }
                 break;
             case R.id.speed_height:
-                postData(writeWindSpeedPlusOpen);
+                if (cheakConnect()) {
+                    postData(writeWindSpeedPlusOpen);
+                    setSpeed(true);
+                }
                 break;
             case R.id.open_door_round:
-                if (openDoorRoundOpen == true) {
-                    openDoorRoundOpen = false;
-                    openDoorRound.clearAnimation();
-                } else {
-                    openDoorRoundOpen = true;
-                    openDoorRound.startAnimation(animation);
+                if (cheakConnect()) {
+                    if (openDoorRoundOpen == true) {
+                        openDoorRoundOpen = false;
+                        openDoorRound.clearAnimation();
+                        postData(writeWindOpenAndClose);
+                    } else {
+                        openDoorRoundOpen = true;
+                        openDoorRound.startAnimation(animation);
+                        postData(writeWindOpenAndOpen);
+                    }
+                    closeDoorRound.clearAnimation();
                 }
-                closeDoorRound.clearAnimation();
                 break;
             case R.id.close_door_round:
-                if (closeDoorRoundOpen == true) {
-                    closeDoorRoundOpen = false;
-                    closeDoorRound.clearAnimation();
-                } else {
-                    closeDoorRoundOpen = true;
-                    closeDoorRound.startAnimation(animation);
+                if (cheakConnect()) {
+                    if (closeDoorRoundOpen == true) {
+                        closeDoorRoundOpen = false;
+                        closeDoorRound.clearAnimation();
+                        postData(writeWindCloseAndClose);
+                    } else {
+                        closeDoorRoundOpen = true;
+                        closeDoorRound.startAnimation(animation);
+                        postData(writeWindCloseAndOpen);
+                    }
+                    openDoorRound.clearAnimation();
                 }
-                openDoorRound.clearAnimation();
                 break;
             case R.id.leida:
-//                if (leidaOpen) {
-//                    leidaOpen = false;
-//                    postData(writeRainClose);
-//                    leida.setBackgroundResource(R.mipmap.xh);
-//                } else {
-//                    leidaOpen = true;
-//                    postData("");
-//                    leida.setBackgroundResource(R.mipmap.xh_1);
-//                }
                 break;
             case R.id.up:
-                if (upOpen) {
-                    upOpen = false;
-                    postData(writeExhaustAirClose);
-                    up.setImageResource(R.mipmap.cf);
-                } else {
-                    upOpen = true;
-                    postData(writeExhaustAirOpen);
-                    up.setImageResource(R.mipmap.cf_1);
+                if (cheakConnect()) {
+                    if (upOpen) {
+                        upOpen = false;
+                        postData(writeExhaustAirClose);
+                        up.setImageResource(R.mipmap.cf);
+                    } else {
+                        upOpen = true;
+                        postData(writeExhaustAirOpen);
+                        up.setImageResource(R.mipmap.cf_1);
+                    }
                 }
                 break;
             case R.id.down:
-                if (downOpen) {
-                    downOpen = false;
-                    postData(writeAirIntakeClose);
-                    down.setImageResource(R.mipmap.jf);
-                } else {
-                    downOpen = true;
-                    down.setImageResource(R.mipmap.jf_1);
-                    postData(writeAirIntakeOpen);
+                if (cheakConnect()) {
+                    if (downOpen) {
+                        downOpen = false;
+                        postData(writeAirIntakeClose);
+                        down.setImageResource(R.mipmap.jf);
+                    } else {
+                        downOpen = true;
+                        down.setImageResource(R.mipmap.jf_1);
+                        postData(writeAirIntakeOpen);
+                    }
                 }
                 break;
             case R.id.fun_speed:
-                setButton(0);
+                if (cheakConnect()) {
+                    setButton(0);
+                }
                 break;
             case R.id.fun_cover:
-                setButton(1);
+                if (cheakConnect()) {
+                    setButton(1);
+                }
                 break;
             case R.id.rain_sensor:
-                setButton(2);
+                if (cheakConnect()) {
+                    setButton(2);
+                }
                 break;
             case R.id.air_flow:
-                setButton(3);
+                if (cheakConnect()) {
+                    setButton(3);
+                }
                 break;
             case R.id.img_bt:
                 showPopConnect();
@@ -524,6 +571,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void setSpeed(boolean add) {
+        if (add) {
+            if (vSpeed1.getVisibility() == View.INVISIBLE) {
+                vSpeed1.setVisibility(View.VISIBLE);
+            } else if (vSpeed2.getVisibility() == View.INVISIBLE) {
+                vSpeed2.setVisibility(View.VISIBLE);
+            } else {
+                vSpeed3.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (vSpeed3.getVisibility() == View.VISIBLE) {
+                vSpeed3.setVisibility(View.INVISIBLE);
+            } else if (vSpeed2.getVisibility() == View.VISIBLE) {
+                vSpeed2.setVisibility(View.INVISIBLE);
+            } else {
+                vSpeed1.setVisibility(View.INVISIBLE);
+            }
+
+
+        }
+
+    }
+
 
     private void aboutBlueTooth() {
         adapter.setNewData(new ArrayList<>());
@@ -536,7 +606,6 @@ public class MainActivity extends AppCompatActivity {
                 .setOperateTimeout(5000);
         BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
                 .setDeviceName(true, "COWIN")
-//                .setServiceUuids(new UUID[]{serviceUuids})      // 只扫描指定的服务的设备，可选
                 .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒；小于等于0表示不限制扫描时间
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
@@ -546,9 +615,9 @@ public class MainActivity extends AppCompatActivity {
             public void onScanFinished(BleDevice scanResult) {
                 // 扫描结束，结果即为扫描到的第一个符合扫描规则的BLE设备，如果为空表示未搜索到（主线程）
                 if (null != scanResult) {
-                    Toast.makeText(context, "发现设备", Toast.LENGTH_LONG).show();
+//                    Toast.makeText(context, "发现设备", Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(context, "未发现设备", Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "not shearch device", Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -560,14 +629,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
-                connectName.setText(bleDevice.getName() + "connect failed");
+                Toast.makeText(context, "BlueTooth off , please open BlueTooth", Toast.LENGTH_LONG).show();
+                connectName.setText("COWIN connect failed");
             }
 
             @Override
             public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
                 // 连接成功，BleDevice即为所连接的BLE设备（主线程）
-                Toast.makeText(context, "连接成功", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "connect success", Toast.LENGTH_LONG).show();
                 myBleDerice = bleDevice;
                 pop_name.setText("COWIN conncected");
                 myGatt = gatt;
@@ -588,7 +657,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScanStarted(boolean success) {
                 Log.e("扫描开始", String.valueOf(success));
-                Toast.makeText(context, "start scan", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "start scan", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -599,49 +668,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-
-    //    点击链接设备
-    private void connect(BleDevice bleDevice) {
-        BleManager.getInstance().connect(bleDevice, new BleScanAndConnectCallback() {
-            @Override
-            public void onScanFinished(BleDevice scanResult) {
-                Toast.makeText(context, "链接完毕", Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onStartConnect() {
-                Toast.makeText(context, "开始链接", Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                Toast.makeText(context, "链接失败" + exception.toString(), Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
-                Toast.makeText(context, "链接成功", Toast.LENGTH_LONG).show();
-                myBleDerice = bleDevice;
-
-            }
-
-            @Override
-            public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
-
-            }
-
-            @Override
-            public void onScanStarted(boolean success) {
-
-            }
-
-            @Override
-            public void onScanning(BleDevice bleDevice) {
-
-            }
-        });
-    }
-
 
     //    打开通知
     private void startIndicate() {
@@ -654,6 +680,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onNotifySuccess() {
                         // 打开通知操作成功
                         Log.e("打开通知成功", "打开通知成功");
+                        postData(writeStateQueryOpen);
                     }
 
                     @Override
@@ -667,7 +694,6 @@ public class MainActivity extends AppCompatActivity {
                         // 打开通知后，设备发过来的数据将在这里出现
                         String str = bytesToString(data, data.length);
                         setButtonState(str);
-//                        Toast.makeText(context, data.toString(), Toast.LENGTH_LONG).show();
                     }
                 }
         );
@@ -676,25 +702,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //    写入功能
-    private void postData(String data) {
+    private void postData(byte[] data) {
         if (cheakConnect()) {
-            byte[] a = hexStringToBytes(writeRainOpen);
             BleManager.getInstance().write(
                     myBleDerice,
                     uuid_service_write.toString(),
                     uuid_chara_write.toString(),
-                    a,
+                    data,
                     new BleWriteCallback() {
                         @Override
                         public void onWriteSuccess(int current, int total, byte[] justWrite) {
                             // 发送数据到设备成功（分包发送的情况下，可以通过方法中返回的参数可以查看发送进度）
-                            Toast.makeText(context, "post data success", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(context, "post data success", Toast.LENGTH_LONG).show();
+                            Log.e("post data success", "post data success");
                         }
 
                         @Override
                         public void onWriteFailure(BleException exception) {
                             // 发送数据到设备失败
-                            Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(context, exception.toString(), Toast.LENGTH_LONG).show();
+                            Log.e("post data 失败", exception.toString());
                         }
                     });
         }
@@ -716,24 +743,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static byte[] hexStringToBytes(String hexString) {
-        if (hexString == null || hexString.equals("")) {
-            return null;
-        }
-        hexString = hexString.toUpperCase();
-        int length = hexString.length() / 2;
-        char[] hexChars = hexString.toCharArray();
-        byte[] d = new byte[length];
-        for (int i = 0; i < length; i++) {
-            int pos = i * 2;
-            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
-        }
-        return d;
-    }
-
-
     private String bytesToString(byte[] arg, int length) {
         String result = new String();
+
         if (arg != null) {
             for (int i = 0; i < length; i++) {
                 result = result
@@ -752,7 +764,7 @@ public class MainActivity extends AppCompatActivity {
 
     //判断按钮状态
     private void setButtonState(String data) {
-       String str = data.replace(" ", "");
+        String str = data.replace(" ", "");
         //rain/sensor（雷达）
         if (String.valueOf(str.charAt(13)).equals("1")) {
             leidaOpen = true;
@@ -783,25 +795,43 @@ public class MainActivity extends AppCompatActivity {
             down.setImageResource(R.mipmap.jf);
         }
         //open\pause(开门的冰箱)
-        if (String.valueOf(str.charAt(11)).equals("1")) {
+        if (String.valueOf(str.charAt(9)).equals("1")) {
             openDoorRoundOpen = true;
             openDoorRound.startAnimation(animation);
             closeDoorRound.clearAnimation();
         } else {
             openDoorRoundOpen = false;
             openDoorRound.clearAnimation();
-            closeDoorRound.clearAnimation();
         }
         //close\pause(关门的冰箱)
-        if (String.valueOf(str.charAt(9)).equals("1")) {
+        if (String.valueOf(str.charAt(11)).equals("1")) {
             closeDoorRoundOpen = true;
             closeDoorRound.startAnimation(animation);
             openDoorRound.clearAnimation();
         } else {
             closeDoorRoundOpen = false;
             closeDoorRound.clearAnimation();
-            openDoorRound.clearAnimation();
+        }
+
+        //速度
+        if (String.valueOf(str.charAt(21)).equals("0")) {
+            vSpeed1.setVisibility(View.INVISIBLE);
+            vSpeed2.setVisibility(View.INVISIBLE);
+            vSpeed3.setVisibility(View.INVISIBLE);
+        } else if (String.valueOf(str.charAt(17)).equals("1")) {
+            vSpeed1.setVisibility(View.VISIBLE);
+            vSpeed2.setVisibility(View.INVISIBLE);
+            vSpeed3.setVisibility(View.INVISIBLE);
+        } else if (String.valueOf(str.charAt(17)).equals("2")) {
+            vSpeed1.setVisibility(View.VISIBLE);
+            vSpeed2.setVisibility(View.VISIBLE);
+            vSpeed3.setVisibility(View.INVISIBLE);
+        } else if (String.valueOf(str.charAt(17)).equals("3")) {
+            vSpeed1.setVisibility(View.VISIBLE);
+            vSpeed2.setVisibility(View.VISIBLE);
+            vSpeed3.setVisibility(View.VISIBLE);
         }
 
     }
+
 }
