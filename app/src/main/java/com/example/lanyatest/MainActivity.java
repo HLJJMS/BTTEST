@@ -2,9 +2,13 @@ package com.example.lanyatest;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattService;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -189,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
     private byte[] writeTemperatureOpen = {-1, 2, 11, 0, 85};
     private boolean leidaOpen = false, upOpen = false, downOpen = false, closeDoorRoundOpen = false, openDoorRoundOpen = false;
     private int height = 0, width = 0;
+    private BluetoothStateBroadcastReceive mReceive;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -200,6 +205,19 @@ public class MainActivity extends AppCompatActivity {
         setPopwindowSetting();
         setPopupwindowConnect();
         setData();
+    }
+
+    private void registerBluetoothReceiver() {
+        if (mReceive == null) {
+            mReceive = new BluetoothStateBroadcastReceive();
+        }
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        intentFilter.addAction("android.bluetooth.BluetoothAdapter.STATE_OFF");
+        intentFilter.addAction("android.bluetooth.BluetoothAdapter.STATE_ON");
+        registerReceiver(mReceive, intentFilter);
     }
 
 
@@ -218,12 +236,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    leidaOpen = true;
-                    leida.setBackgroundResource(R.mipmap.xh - 1);
+
                     postData(writePowerOpen);
                 } else {
-                    leidaOpen = false;
-                    leida.setBackgroundResource(R.mipmap.xh);
+
                     postData(writePowerClose);
                 }
             }
@@ -241,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
                     cheakBlueTooth();
                 } else {
                     Log.e("结果", aBoolean.toString());
-                    Toast.makeText(context, "权限被禁止", Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "no permission", Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -365,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
                 double c = 10 + progress * 0.35;
                 double f = c * 1.8 + 32;
                 c = (double) Math.round(c * 10) / 10;
-                f = (double) Math.round(c * 10) / 10;
+                f = (double) Math.round(f * 10) / 10;
                 settingData.setText(c + "℃" + "/" + f + "℉");
             }
 
@@ -441,67 +457,71 @@ public class MainActivity extends AppCompatActivity {
             case R.id.speed_low:
                 if (cheakConnect()) {
                     postData(writeWindSpeedReductionOpen);
-                    setSpeed(false);
+//                    setSpeed(false);
                 }
                 break;
             case R.id.speed_height:
                 if (cheakConnect()) {
                     postData(writeWindSpeedPlusOpen);
-                    setSpeed(true);
+//                    setSpeed(true);
                 }
                 break;
             case R.id.open_door_round:
                 if (cheakConnect()) {
                     if (openDoorRoundOpen == true) {
                         openDoorRoundOpen = false;
-                        openDoorRound.clearAnimation();
+//                        openDoorRound.clearAnimation();
                         postData(writeWindOpenAndClose);
                     } else {
                         openDoorRoundOpen = true;
-                        openDoorRound.startAnimation(animation);
+//                        openDoorRound.startAnimation(animation);
                         postData(writeWindOpenAndOpen);
                     }
-                    closeDoorRound.clearAnimation();
+//                    closeDoorRound.clearAnimation();
                 }
                 break;
             case R.id.close_door_round:
                 if (cheakConnect()) {
                     if (closeDoorRoundOpen == true) {
                         closeDoorRoundOpen = false;
-                        closeDoorRound.clearAnimation();
+//                        closeDoorRound.clearAnimation();
                         postData(writeWindCloseAndClose);
                     } else {
                         closeDoorRoundOpen = true;
-                        closeDoorRound.startAnimation(animation);
                         postData(writeWindCloseAndOpen);
                     }
-                    openDoorRound.clearAnimation();
+//                    openDoorRound.clearAnimation();
                 }
                 break;
             case R.id.leida:
+                if (leidaOpen) {
+                    postData(writeRainClose);
+                } else {
+                    postData(writeRainOpen);
+                }
                 break;
             case R.id.up:
                 if (cheakConnect()) {
                     if (upOpen) {
-                        upOpen = false;
+
                         postData(writeExhaustAirClose);
-                        up.setImageResource(R.mipmap.cf);
+//                        up.setImageResource(R.mipmap.cf);
                     } else {
-                        upOpen = true;
+
                         postData(writeExhaustAirOpen);
-                        up.setImageResource(R.mipmap.cf_1);
+//                        up.setImageResource(R.mipmap.cf_1);
                     }
                 }
                 break;
             case R.id.down:
                 if (cheakConnect()) {
                     if (downOpen) {
-                        downOpen = false;
+
                         postData(writeAirIntakeClose);
-                        down.setImageResource(R.mipmap.jf);
+//                        down.setImageResource(R.mipmap.jf);
                     } else {
-                        downOpen = true;
-                        down.setImageResource(R.mipmap.jf_1);
+
+//                        down.setImageResource(R.mipmap.jf_1);
                         postData(writeAirIntakeOpen);
                     }
                 }
@@ -765,35 +785,8 @@ public class MainActivity extends AppCompatActivity {
     //判断按钮状态
     private void setButtonState(String data) {
         String str = data.replace(" ", "");
-        //rain/sensor（雷达）
-        if (String.valueOf(str.charAt(13)).equals("1")) {
-            leidaOpen = true;
-            leida.setImageResource(R.mipmap.xh_1);
-            switcher.setChecked(true);
-        } else {
-            leidaOpen = false;
-            leida.setImageResource(R.mipmap.xh);
-            switcher.setChecked(false);
-        }
 
-        //exhaust(排风)
-        if (String.valueOf(str.charAt(17)).equals("1")) {
-            upOpen = true;
-            up.setImageResource(R.mipmap.cf_1);
 
-        } else {
-            upOpen = false;
-            up.setImageResource(R.mipmap.cf);
-        }
-
-        //intake
-        if (String.valueOf(str.charAt(15)).equals("1")) {
-            downOpen = true;
-            down.setImageResource(R.mipmap.jf_1);
-        } else {
-            downOpen = false;
-            down.setImageResource(R.mipmap.jf);
-        }
         //open\pause(开门的冰箱)
         if (String.valueOf(str.charAt(9)).equals("1")) {
             openDoorRoundOpen = true;
@@ -812,26 +805,58 @@ public class MainActivity extends AppCompatActivity {
             closeDoorRoundOpen = false;
             closeDoorRound.clearAnimation();
         }
+        //intake
+        if (String.valueOf(str.charAt(15)).equals("1")) {
+            downOpen = true;
+            down.setImageResource(R.mipmap.jf_1);
+        } else {
+            downOpen = false;
+            down.setImageResource(R.mipmap.jf);
+        }
+        //rain/sensor（雷达）
+        if (String.valueOf(str.charAt(13)).equals("1")) {
+            leidaOpen = true;
+            leida.setImageResource(R.mipmap.xh_1);
+        } else {
+            leidaOpen = false;
+            leida.setImageResource(R.mipmap.xh);
+        }
+        //exhaust(排风)
+        if (String.valueOf(str.charAt(17)).equals("1")) {
+            upOpen = true;
+            up.setImageResource(R.mipmap.cf_1);
 
+        } else {
+            upOpen = false;
+            up.setImageResource(R.mipmap.cf);
+        }
         //速度
         if (String.valueOf(str.charAt(21)).equals("0")) {
             vSpeed1.setVisibility(View.INVISIBLE);
             vSpeed2.setVisibility(View.INVISIBLE);
             vSpeed3.setVisibility(View.INVISIBLE);
-        } else if (String.valueOf(str.charAt(17)).equals("1")) {
+        } else if (String.valueOf(str.charAt(21)).equals("1")) {
             vSpeed1.setVisibility(View.VISIBLE);
             vSpeed2.setVisibility(View.INVISIBLE);
             vSpeed3.setVisibility(View.INVISIBLE);
-        } else if (String.valueOf(str.charAt(17)).equals("2")) {
+        } else if (String.valueOf(str.charAt(21)).equals("2")) {
             vSpeed1.setVisibility(View.VISIBLE);
             vSpeed2.setVisibility(View.VISIBLE);
             vSpeed3.setVisibility(View.INVISIBLE);
-        } else if (String.valueOf(str.charAt(17)).equals("3")) {
+        } else if (String.valueOf(str.charAt(21)).equals("3")) {
             vSpeed1.setVisibility(View.VISIBLE);
             vSpeed2.setVisibility(View.VISIBLE);
             vSpeed3.setVisibility(View.VISIBLE);
         }
-
+        //open\pause(总开关)
+        if (String.valueOf(str.charAt(7)).equals("1")) {
+            switcher.setChecked(true);
+        } else {
+            switcher.setChecked(false);
+            vSpeed1.setVisibility(View.INVISIBLE);
+            vSpeed2.setVisibility(View.INVISIBLE);
+            vSpeed3.setVisibility(View.INVISIBLE);
+        }
     }
 
 }
